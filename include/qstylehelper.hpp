@@ -31,6 +31,7 @@ public:
 
     static void setTitleBarDarkColor();
     static void setTitleBarDarkColor(QWidget& window, bool dark = true);
+    static void setTitleBarDarkColor(std::initializer_list<std::reference_wrapper<QWidget>>&& windows, bool dark = true);
 
 #ifdef QT_WIDGETS_LIB
     static QStringList QStyleNames();
@@ -108,7 +109,7 @@ inline QStyleHelper::~QStyleHelper()
 
 inline void QStyleHelper::setTitleBarDarkColor()
 {
-#ifdef Q_OS_WINDOWS
+#if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
     qputenv("QT_QPA_PLATFORM", "windows:darkmode=1");
 #endif // Q_OS_WINDOWS
 }
@@ -119,6 +120,17 @@ inline void QStyleHelper::setTitleBarDarkColor(QWidget &window, bool dark)
     auto hwnd = window.winId();
     const BOOL darkBorder = static_cast<BOOL>(dark);
     DwmSetWindowAttribute((HWND)hwnd, 19, &darkBorder, sizeof(darkBorder));
+#endif
+}
+
+inline void QStyleHelper::setTitleBarDarkColor(std::initializer_list<std::reference_wrapper<QWidget>> &&windows, bool dark)
+{
+#if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
+    for (auto &w : windows) {
+        auto hwnd = w.get().winId();
+        const BOOL darkBorder = static_cast<BOOL>(dark);
+        DwmSetWindowAttribute((HWND)hwnd, 19, &darkBorder, sizeof(darkBorder));
+    }
 #endif
 }
 
