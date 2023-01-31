@@ -112,7 +112,7 @@ inline void QStyleHelper::setTitleBarDarkColor()
     qputenv("QT_QPA_PLATFORM", "windows:darkmode=1");
 #endif // Q_OS_WINDOWS
 }
-#include <QDebug>
+
 inline void QStyleHelper::setTitleBarDarkColor(QWidget &window)
 {
 #if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
