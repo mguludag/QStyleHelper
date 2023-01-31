@@ -2,15 +2,16 @@
 #define QSTYLEHELPER_HPP
 #include <QtGlobal>
 
+#include <QBasicTimer>
 #include <QProcess>
 #include <QSettings>
-#include <QBasicTimer>
+#include <QWindow>
 
 #ifdef QT_WIDGETS_LIB
 #include <QApplication>
+#include <QPalette>
 #include <QStyle>
 #include <QStyleFactory>
-#include <QPalette>
 #include <QToolTip>
 #endif
 
@@ -30,8 +31,11 @@ public:
     ~QStyleHelper();
 
     static void setTitleBarDarkColor();
-    static void setTitleBarDarkColor(QWidget& window, bool dark = true);
-    static void setTitleBarDarkColor(std::initializer_list<std::reference_wrapper<QWidget>>&& windows, bool dark = true);
+    static void setTitleBarDarkColor(QWindow &window, bool dark = true);
+    static void setTitleBarDarkColor(QList<QWindow*>&& windows, bool dark = true);
+#ifdef QT_WIDGETS_LIB
+    static void setTitleBarDarkColor(std::initializer_list<std::reference_wrapper<QWidget>> &&windows, bool dark = true);
+#endif
 
 #ifdef QT_WIDGETS_LIB
     static QStringList QStyleNames();
@@ -114,7 +118,7 @@ inline void QStyleHelper::setTitleBarDarkColor()
 #endif // Q_OS_WINDOWS
 }
 
-inline void QStyleHelper::setTitleBarDarkColor(QWidget &window, bool dark)
+inline void QStyleHelper::setTitleBarDarkColor(QWindow &window, bool dark)
 {
 #if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
     auto hwnd = window.winId();
@@ -123,11 +127,24 @@ inline void QStyleHelper::setTitleBarDarkColor(QWidget &window, bool dark)
 #endif
 }
 
+#ifdef QT_WIDGETS_LIB
 inline void QStyleHelper::setTitleBarDarkColor(std::initializer_list<std::reference_wrapper<QWidget>> &&windows, bool dark)
 {
 #if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
     for (auto &w : windows) {
         auto hwnd = w.get().winId();
+        const BOOL darkBorder = static_cast<BOOL>(dark);
+        DwmSetWindowAttribute((HWND)hwnd, 19, &darkBorder, sizeof(darkBorder));
+    }
+#endif
+}
+#endif
+
+inline void QStyleHelper::setTitleBarDarkColor(QList<QWindow *> &&windows, bool dark)
+{
+#if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
+    for (auto &w : windows) {
+        auto hwnd = w->winId();
         const BOOL darkBorder = static_cast<BOOL>(dark);
         DwmSetWindowAttribute((HWND)hwnd, 19, &darkBorder, sizeof(darkBorder));
     }
