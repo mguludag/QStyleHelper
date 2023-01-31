@@ -14,6 +14,14 @@
 #include <QToolTip>
 #endif
 
+
+#if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
+#include <dwmapi.h>
+
+#pragma comment(lib, "Dwmapi.lib")
+#endif
+
+
 class QStyleHelper : public QObject
 {
     Q_OBJECT
@@ -22,6 +30,7 @@ public:
     ~QStyleHelper();
 
     static void setTitleBarDarkColor();
+    static void setTitleBarDarkColor(QWidget& window);
 
 #ifdef QT_WIDGETS_LIB
     static QStringList QStyleNames();
@@ -102,6 +111,15 @@ inline void QStyleHelper::setTitleBarDarkColor()
 #ifdef Q_OS_WINDOWS
     qputenv("QT_QPA_PLATFORM", "windows:darkmode=1");
 #endif // Q_OS_WINDOWS
+}
+#include <QDebug>
+inline void QStyleHelper::setTitleBarDarkColor(QWidget &window)
+{
+#if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
+    auto hwnd = window.winId();
+    const BOOL darkBorder = TRUE;
+    DwmSetWindowAttribute((HWND)hwnd, 19, &darkBorder, sizeof(darkBorder));
+#endif
 }
 
 #ifdef QT_WIDGETS_LIB
