@@ -89,12 +89,16 @@ public:
     static void setTitleBarDarkColor();
     static void setTitleBarDarkColor(QWindow &window, bool dark = true);
     static void setTitleBarDarkColor(QList<QWindow*>&& windows, bool dark = true);
-#ifdef Q_OS_WINDOWS
-    static void setAcrylicBlurWindow(QWindow &window, bool acrylic = true);
+
+    static void setAcrylicBlurWindow(QWindow &window, bool acrylic = false);
     static void setAcrylicBlurWindow(QList<QWindow*>&& windows, bool acrylic = false);
-#endif
+
 #ifdef QT_WIDGETS_LIB
+    static void setTitleBarDarkColor(QWidget &window, bool dark = true);
     static void setTitleBarDarkColor(std::initializer_list<std::reference_wrapper<QWidget>> &&windows, bool dark = true);
+
+    static void setAcrylicBlurWindow(QWidget &window, bool acrylic = false);
+    static void setAcrylicBlurWindow(std::initializer_list<std::reference_wrapper<QWidget>> &&windows, bool acrylic = false);
 #endif
 
 #ifdef QT_WIDGETS_LIB
@@ -243,6 +247,50 @@ inline void QStyleHelper::setAcrylicBlurWindow(QList<QWindow *> &&windows, bool 
             }
         }
     }
+#endif
+}
+
+inline void QStyleHelper::setAcrylicBlurWindow(QWidget &window, bool acrylic)
+{
+#if defined(Q_OS_WIN)
+    auto hwnd = window.winId();
+    HMODULE hUser = GetModuleHandle(L"user32.dll");
+    if (hUser){
+        auto setWCA = (pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
+        if (setWCA){
+            ACCENT_POLICY accent = { acrylic ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_ENABLE_BLURBEHIND, 0, 0, 0 };
+            WINDOWCOMPOSITIONATTRIBDATA data{WCA_ACCENT_POLICY, &accent, sizeof(accent)};
+            setWCA((HWND)hwnd, &data);
+        }
+    }
+#endif
+}
+
+inline void QStyleHelper::setAcrylicBlurWindow(std::initializer_list<std::reference_wrapper<QWidget> > &&windows, bool acrylic)
+{
+#if defined(Q_OS_WIN)
+    for (auto &w : windows) {
+        auto hwnd = w.get().winId();
+
+        HMODULE hUser = GetModuleHandle(L"user32.dll");
+        if (hUser){
+            auto setWCA = (pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
+            if (setWCA){
+                ACCENT_POLICY accent = { acrylic ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_ENABLE_BLURBEHIND, 0, 0, 0 };
+                WINDOWCOMPOSITIONATTRIBDATA data{WCA_ACCENT_POLICY, &accent, sizeof(accent)};
+                setWCA((HWND)hwnd, &data);
+            }
+        }
+    }
+#endif
+}
+
+inline void QStyleHelper::setTitleBarDarkColor(QWidget &window, bool dark)
+{
+#if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
+    auto hwnd = window.winId();
+    const BOOL darkBorder = static_cast<BOOL>(dark);
+    DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::UseDarkMode, &darkBorder, sizeof(darkBorder));
 #endif
 }
 
