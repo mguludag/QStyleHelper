@@ -30,7 +30,7 @@ public:
     ~QStyleHelper();
 
     static void setTitleBarDarkColor();
-    static void setTitleBarDarkColor(QWidget& window);
+    static void setTitleBarDarkColor(QWidget& window, bool dark = true);
 
 #ifdef QT_WIDGETS_LIB
     static QStringList QStyleNames();
@@ -113,11 +113,11 @@ inline void QStyleHelper::setTitleBarDarkColor()
 #endif // Q_OS_WINDOWS
 }
 
-inline void QStyleHelper::setTitleBarDarkColor(QWidget &window)
+inline void QStyleHelper::setTitleBarDarkColor(QWidget &window, bool dark)
 {
 #if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
     auto hwnd = window.winId();
-    const BOOL darkBorder = TRUE;
+    const BOOL darkBorder = static_cast<BOOL>(dark);
     DwmSetWindowAttribute((HWND)hwnd, 19, &darkBorder, sizeof(darkBorder));
 #endif
 }
