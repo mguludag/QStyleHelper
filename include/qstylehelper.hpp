@@ -136,12 +136,12 @@ private:
         bool mIsDarkPalette;
         QPalette mCustomDarkPalette;
         QPalette mCustomLightPalette;
-        static constexpr QColor lightGray{190, 190, 190};
-        static constexpr QColor gray{164, 166, 168};
-        static constexpr QColor midDarkGray{68, 68, 68};
-        static constexpr QColor darkGray{53, 53, 53};
-        static constexpr QColor black{25, 25, 25};
-        static constexpr QColor blue{42, 130, 218};
+        const QColor lightGray{190, 190, 190};
+        const QColor gray{164, 166, 168};
+        const QColor midDarkGray{68, 68, 68};
+        const QColor darkGray{53, 53, 53};
+        const QColor black{25, 25, 25};
+        const QColor blue{42, 130, 218};
     };
 #endif
 
