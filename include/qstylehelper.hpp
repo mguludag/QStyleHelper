@@ -355,7 +355,7 @@ inline void QStyleHelper::QPaletteHelper::setPalette(bool dark)
 
 inline const bool& QStyleHelper::QPaletteHelper::style()
 {
-    return mIsDarkPalette
+    return mIsDarkPalette;
 }
 
 inline void QStyleHelper::QPaletteHelper::setCustomLightPalette(const QPalette &newCustomLightPalette)
