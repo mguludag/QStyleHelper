@@ -16,7 +16,7 @@
 #endif
 
 
-#if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
+#if defined(Q_OS_WIN)
 #include <dwmapi.h>
 
 #pragma comment(lib, "Dwmapi.lib")
@@ -37,7 +37,7 @@ enum DwmWindowAttribute : uint
 
 #endif
 
-#if defined(Q_OS_WIN)
+#if defined(Q_OS_WIN) && defined(QT_WIDGETS_LIB)
 
 typedef enum _WINDOWCOMPOSITIONATTRIB
 {
@@ -90,15 +90,14 @@ public:
     static void setTitleBarDarkColor(QWindow &window, bool dark = true);
     static void setTitleBarDarkColor(QList<QWindow*>&& windows, bool dark = true);
 
-    static void setAcrylicBlurWindow(QWindow &window, bool acrylic = false);
+    static void setMica(QWindow &window, bool acrylic = false);
+    static void setMica(QList<QWindow*>&& windows, bool acrylic = false);
+
+    static void setAcrylicBlurWindow(QWindow &window, bool acrylic = true);
     static void setAcrylicBlurWindow(QList<QWindow*>&& windows, bool acrylic = false);
 
 #ifdef QT_WIDGETS_LIB
-    static void setTitleBarDarkColor(QWidget &window, bool dark = true);
     static void setTitleBarDarkColor(std::initializer_list<std::reference_wrapper<QWidget>> &&windows, bool dark = true);
-
-    static void setAcrylicBlurWindow(QWidget &window, bool acrylic = false);
-    static void setAcrylicBlurWindow(std::initializer_list<std::reference_wrapper<QWidget>> &&windows, bool acrylic = false);
 #endif
 
 #ifdef QT_WIDGETS_LIB
@@ -136,12 +135,12 @@ private:
         bool mIsDarkPalette;
         QPalette mCustomDarkPalette;
         QPalette mCustomLightPalette;
-        const QColor lightGray{190, 190, 190};
-        const QColor gray{164, 166, 168};
-        const QColor midDarkGray{68, 68, 68};
-        const QColor darkGray{53, 53, 53};
-        const QColor black{25, 25, 25};
-        const QColor blue{42, 130, 218};
+        static constexpr QColor lightGray{190, 190, 190};
+        static constexpr QColor gray{164, 166, 168};
+        static constexpr QColor midDarkGray{68, 68, 68};
+        static constexpr QColor darkGray{53, 53, 53};
+        static constexpr QColor black{25, 25, 25};
+        static constexpr QColor blue{42, 130, 218};
     };
 #endif
 
@@ -217,7 +216,7 @@ inline void QStyleHelper::setTitleBarDarkColor(QList<QWindow *> &&windows, bool 
 
 inline void QStyleHelper::setAcrylicBlurWindow(QWindow &window, bool acrylic)
 {
-#if defined(Q_OS_WIN)
+#if defined(Q_OS_WIN) && defined(QT_WIDGETS_LIB)
     auto hwnd = window.winId();
     HMODULE hUser = GetModuleHandle(L"user32.dll");
     if (hUser){
@@ -233,7 +232,7 @@ inline void QStyleHelper::setAcrylicBlurWindow(QWindow &window, bool acrylic)
 
 inline void QStyleHelper::setAcrylicBlurWindow(QList<QWindow *> &&windows, bool acrylic)
 {
-#if defined(Q_OS_WIN)
+#if defined(Q_OS_WIN) && defined(QT_WIDGETS_LIB)
     for (auto &w : windows) {
         auto hwnd = w->winId();
 
@@ -250,47 +249,23 @@ inline void QStyleHelper::setAcrylicBlurWindow(QList<QWindow *> &&windows, bool 
 #endif
 }
 
-inline void QStyleHelper::setAcrylicBlurWindow(QWidget &window, bool acrylic)
+inline void QStyleHelper::setMica(QWindow &window, bool acrylic)
 {
-#if defined(Q_OS_WIN)
+#if defined(Q_OS_WIN) && defined(QT_QML_LIB)
     auto hwnd = window.winId();
-    HMODULE hUser = GetModuleHandle(L"user32.dll");
-    if (hUser){
-        auto setWCA = (pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
-        if (setWCA){
-            ACCENT_POLICY accent = { acrylic ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_ENABLE_BLURBEHIND, 0, 0, 0 };
-            WINDOWCOMPOSITIONATTRIBDATA data{WCA_ACCENT_POLICY, &accent, sizeof(accent)};
-            setWCA((HWND)hwnd, &data);
-        }
-    }
+    const BOOL backdrop = acrylic ? 3 : 2;
+    DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::SystemBackdropType, &backdrop, sizeof(backdrop));
 #endif
 }
 
-inline void QStyleHelper::setAcrylicBlurWindow(std::initializer_list<std::reference_wrapper<QWidget> > &&windows, bool acrylic)
+inline void QStyleHelper::setMica(QList<QWindow *> &&windows, bool acrylic)
 {
-#if defined(Q_OS_WIN)
+#if defined(Q_OS_WIN) && defined(QT_QML_LIB)
     for (auto &w : windows) {
-        auto hwnd = w.get().winId();
-
-        HMODULE hUser = GetModuleHandle(L"user32.dll");
-        if (hUser){
-            auto setWCA = (pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
-            if (setWCA){
-                ACCENT_POLICY accent = { acrylic ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_ENABLE_BLURBEHIND, 0, 0, 0 };
-                WINDOWCOMPOSITIONATTRIBDATA data{WCA_ACCENT_POLICY, &accent, sizeof(accent)};
-                setWCA((HWND)hwnd, &data);
-            }
-        }
+        auto hwnd = w->winId();
+        const BOOL backdrop = acrylic ? 3 : 2;
+        DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::SystemBackdropType, &backdrop, sizeof(backdrop));
     }
-#endif
-}
-
-inline void QStyleHelper::setTitleBarDarkColor(QWidget &window, bool dark)
-{
-#if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
-    auto hwnd = window.winId();
-    const BOOL darkBorder = static_cast<BOOL>(dark);
-    DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::UseDarkMode, &darkBorder, sizeof(darkBorder));
 #endif
 }
 
@@ -351,9 +326,9 @@ inline bool QStyleHelper::isDark()
 #ifdef Q_OS_WINDOWS
     return mSettings.value("AppsUseLightTheme", true).toBool();
 #elif Q_OS_UNIX
-    //TODO: add linux equivalent for detecting scheme changes
-    //      org.freedesktop.portal.Desktop /org/freedesktop/portal/desktop org.freedesktop.portal.Settings.Read "org.freedesktop.appearance" "color-scheme"
-    //      https://code.qt.io/cgit/qt/qtbase.git/tree/src/plugins/platformthemes/xdgdesktopportal/qxdgdesktopportaltheme.cpp?h=dev#n116
+//TODO: add linux equivalent for detecting scheme changes
+//      org.freedesktop.portal.Desktop /org/freedesktop/portal/desktop org.freedesktop.portal.Settings.Read "org.freedesktop.appearance" "color-scheme"
+//      https://code.qt.io/cgit/qt/qtbase.git/tree/src/plugins/platformthemes/xdgdesktopportal/qxdgdesktopportaltheme.cpp?h=dev#n116
 #endif
 }
 
@@ -380,7 +355,7 @@ inline void QStyleHelper::QPaletteHelper::setPalette(bool dark)
 
 inline const bool& QStyleHelper::QPaletteHelper::style()
 {
-    return mIsDarkPalette;
+    return mIsDarkPalette
 }
 
 inline void QStyleHelper::QPaletteHelper::setCustomLightPalette(const QPalette &newCustomLightPalette)
