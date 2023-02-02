@@ -15,11 +15,18 @@
 #include <QToolTip>
 #endif
 
+#if defined(Q_CC_GNU) || defined(Q_CC_CLANG)
+#define DEPRECATED(func) func __attribute__ ((deprecated))
+#elif defined(Q_CC_MSVC)
+#define DEPRECATED(func) __declspec(deprecated) func
+#endif
 
 #if defined(Q_OS_WIN) && defined(Q_CC_MSVC)
+#include <QOperatingSystemVersion>
 #include <dwmapi.h>
 
 #pragma comment(lib, "Dwmapi.lib")
+
 
 enum DwmWindowAttribute : uint
 {
@@ -32,6 +39,7 @@ enum DwmWindowAttribute : uint
     TextColor,
     VisibleFrameBorderThickness,
     SystemBackdropType,
+    UndocumentedSystemBackdropType = 1029,
     Last
 };
 
@@ -43,7 +51,8 @@ typedef enum _WINDOWCOMPOSITIONATTRIB
 {
     WCA_THEME_ATTRIBUTES = 10,
     WCA_ACCENT_POLICY = 19,
-    WCA_FREEZE_REPRESENTATION = 20
+    WCA_FREEZE_REPRESENTATION = 20,
+    WCA_MICA = 26
 } WINDOWCOMPOSITIONATTRIB;
 
 typedef struct _WINDOWCOMPOSITIONATTRIBDATA
@@ -88,17 +97,18 @@ public:
 
     static void setTitleBarDarkColor();
     static void setTitleBarDarkColor(QWindow &window, bool dark = true);
-    static void setTitleBarDarkColor(QList<QWindow*>&& windows, bool dark = true);
+    static void setTitleBarDarkColor(QList<QWindow*> &&windows, bool dark = true);
 
     static void setMica(QWindow &window, bool acrylic = false);
-    static void setMica(QList<QWindow*>&& windows, bool acrylic = false);
+    static void setMica(QList<QWindow*> &&windows, bool acrylic = false);
 
-    static void setAcrylicBlurWindow(QWindow &window, bool acrylic = true);
-    static void setAcrylicBlurWindow(QList<QWindow*>&& windows, bool acrylic = false);
+    DEPRECATED(static void setAcrylicBlurWindow(QWindow &window, bool acrylic = true));
+    DEPRECATED(static void setAcrylicBlurWindow(QList<QWindow*> &&windows, bool acrylic = false));
 
 #if defined(QT_WIDGETS_LIB) && defined(Q_CC_MSVC)
     static void setTitleBarDarkColor(std::initializer_list<std::reference_wrapper<QWidget>> &&windows, bool dark = true);
-    static void setAcrylicBlurWindow(std::initializer_list<std::reference_wrapper<QWidget>>&& windows, bool acrylic = false);
+    static void setMica(std::initializer_list<std::reference_wrapper<QWidget>> &&windows, bool acrylic = false);
+    DEPRECATED(static void setAcrylicBlurWindow(std::initializer_list<std::reference_wrapper<QWidget>> &&windows, bool acrylic = false));
 #endif
 
 #if defined(QT_WIDGETS_LIB)
@@ -177,7 +187,7 @@ inline QStyleHelper::~QStyleHelper()
 
 inline void QStyleHelper::setTitleBarDarkColor()
 {
-#if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
+#if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR > 14
     qputenv("QT_QPA_PLATFORM", "windows:darkmode=1");
 #endif // Q_OS_WINDOWS
 }
@@ -213,9 +223,36 @@ inline void QStyleHelper::setAcrylicBlurWindow(std::initializer_list<std::refere
         if (hUser){
             auto setWCA = (pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
             if (setWCA){
-                ACCENT_POLICY accent = { acrylic ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_ENABLE_BLURBEHIND, 0, 0, 0 };
+                ACCENT_POLICY accent = { acrylic ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_ENABLE_BLURBEHIND, 3, 0x0cccccc, 0 };
+                WINDOWCOMPOSITIONATTRIBDATA data{WCA_MICA, &accent, sizeof(accent)};
+                setWCA((HWND)hwnd, &data);
+            }
+        }
+    }
+#endif
+}
+
+inline void QStyleHelper::setMica(std::initializer_list<std::reference_wrapper<QWidget> > &&windows, bool acrylic)
+{
+#if defined(Q_OS_WIN) && defined(Q_CC_MSVC) && defined(QT_WIDGETS_LIB)
+    for (auto &w : windows) {
+        auto hwnd = w.get().winId();
+
+        HMODULE hUser = GetModuleHandle(L"user32.dll");
+        if (hUser){
+            auto setWCA = (pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
+            if (setWCA){
+                ACCENT_POLICY accent = {ACCENT_ENABLE_HOSTBACKDROP,
+                                         static_cast<DWORD>((acrylic ? 3 : 2)), 0x0cccccc, 0 };
                 WINDOWCOMPOSITIONATTRIBDATA data{WCA_ACCENT_POLICY, &accent, sizeof(accent)};
                 setWCA((HWND)hwnd, &data);
+                const MARGINS margins{-1, -1, -1, -1};
+                DwmExtendFrameIntoClientArea((HWND)hwnd, &margins);
+                setWCA((HWND)hwnd, &data);
+                const BOOL backdrop = acrylic ? 3 : 2;
+                DwmSetWindowAttribute((HWND)hwnd, QOperatingSystemVersion::current().microVersion() < 22523 ?
+                                          DwmWindowAttribute::UndocumentedSystemBackdropType : DwmWindowAttribute::SystemBackdropType,
+                                      &backdrop, sizeof(backdrop));
             }
         }
     }
@@ -274,7 +311,9 @@ inline void QStyleHelper::setMica(QWindow &window, bool acrylic)
 #if defined(Q_OS_WIN) && defined(Q_CC_MSVC) && defined(QT_QML_LIB)
     auto hwnd = window.winId();
     const BOOL backdrop = acrylic ? 3 : 2;
-    DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::SystemBackdropType, &backdrop, sizeof(backdrop));
+    DwmSetWindowAttribute((HWND)hwnd, QOperatingSystemVersion::current().microVersion() < 22523 ?
+                              DwmWindowAttribute::UndocumentedSystemBackdropType : DwmWindowAttribute::SystemBackdropType,
+                          &backdrop, sizeof(backdrop));
 #endif
 }
 
@@ -284,7 +323,9 @@ inline void QStyleHelper::setMica(QList<QWindow *> &&windows, bool acrylic)
     for (auto &w : windows) {
         auto hwnd = w->winId();
         const BOOL backdrop = acrylic ? 3 : 2;
-        DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::SystemBackdropType, &backdrop, sizeof(backdrop));
+        DwmSetWindowAttribute((HWND)hwnd, QOperatingSystemVersion::current().microVersion() < 22523 ?
+                                  DwmWindowAttribute::UndocumentedSystemBackdropType : DwmWindowAttribute::SystemBackdropType,
+                              &backdrop, sizeof(backdrop));
     }
 #endif
 }
