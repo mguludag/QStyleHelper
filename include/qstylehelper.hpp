@@ -16,7 +16,7 @@
 #endif
 
 
-#if defined(Q_OS_WIN)
+#if defined(Q_OS_WIN) && defined(Q_CC_MSVC)
 #include <dwmapi.h>
 
 #pragma comment(lib, "Dwmapi.lib")
@@ -37,7 +37,7 @@ enum DwmWindowAttribute : uint
 
 #endif
 
-#if defined(Q_OS_WIN) && defined(QT_WIDGETS_LIB)
+#if defined(Q_OS_WIN) && defined(Q_CC_MSVC) && defined(QT_WIDGETS_LIB)
 
 typedef enum _WINDOWCOMPOSITIONATTRIB
 {
@@ -96,11 +96,11 @@ public:
     static void setAcrylicBlurWindow(QWindow &window, bool acrylic = true);
     static void setAcrylicBlurWindow(QList<QWindow*>&& windows, bool acrylic = false);
 
-#ifdef QT_WIDGETS_LIB
+#if defined(QT_WIDGETS_LIB) && defined(Q_CC_MSVC)
     static void setTitleBarDarkColor(std::initializer_list<std::reference_wrapper<QWidget>> &&windows, bool dark = true);
 #endif
 
-#ifdef QT_WIDGETS_LIB
+#if defined(QT_WIDGETS_LIB)
     static QStringList QStyleNames();
     QStyleHelper &setWidgetStyle(const QString& styleName);
     QStyleHelper &setCustomDarkPalette(const QPalette &newCustomDarkPalette);
@@ -183,14 +183,14 @@ inline void QStyleHelper::setTitleBarDarkColor()
 
 inline void QStyleHelper::setTitleBarDarkColor(QWindow &window, bool dark)
 {
-#if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
+#if defined(Q_OS_WIN) && defined(Q_CC_MSVC) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
     auto hwnd = window.winId();
     const BOOL darkBorder = static_cast<BOOL>(dark);
     DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::UseDarkMode, &darkBorder, sizeof(darkBorder));
 #endif
 }
 
-#ifdef QT_WIDGETS_LIB
+#if defined(QT_WIDGETS_LIB) && defined(Q_CC_MSVC)
 inline void QStyleHelper::setTitleBarDarkColor(std::initializer_list<std::reference_wrapper<QWidget>> &&windows, bool dark)
 {
 #if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
@@ -216,7 +216,7 @@ inline void QStyleHelper::setTitleBarDarkColor(QList<QWindow *> &&windows, bool 
 
 inline void QStyleHelper::setAcrylicBlurWindow(QWindow &window, bool acrylic)
 {
-#if defined(Q_OS_WIN) && defined(QT_WIDGETS_LIB)
+#if defined(Q_OS_WIN) && defined(Q_CC_MSVC) && defined(QT_WIDGETS_LIB)
     auto hwnd = window.winId();
     HMODULE hUser = GetModuleHandle(L"user32.dll");
     if (hUser){
@@ -232,7 +232,7 @@ inline void QStyleHelper::setAcrylicBlurWindow(QWindow &window, bool acrylic)
 
 inline void QStyleHelper::setAcrylicBlurWindow(QList<QWindow *> &&windows, bool acrylic)
 {
-#if defined(Q_OS_WIN) && defined(QT_WIDGETS_LIB)
+#if defined(Q_OS_WIN) && defined(Q_CC_MSVC) && defined(QT_WIDGETS_LIB)
     for (auto &w : windows) {
         auto hwnd = w->winId();
 
@@ -251,7 +251,7 @@ inline void QStyleHelper::setAcrylicBlurWindow(QList<QWindow *> &&windows, bool 
 
 inline void QStyleHelper::setMica(QWindow &window, bool acrylic)
 {
-#if defined(Q_OS_WIN) && defined(QT_QML_LIB)
+#if defined(Q_OS_WIN) && defined(Q_CC_MSVC) && defined(QT_QML_LIB)
     auto hwnd = window.winId();
     const BOOL backdrop = acrylic ? 3 : 2;
     DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::SystemBackdropType, &backdrop, sizeof(backdrop));
@@ -260,7 +260,7 @@ inline void QStyleHelper::setMica(QWindow &window, bool acrylic)
 
 inline void QStyleHelper::setMica(QList<QWindow *> &&windows, bool acrylic)
 {
-#if defined(Q_OS_WIN) && defined(QT_QML_LIB)
+#if defined(Q_OS_WIN) && defined(Q_CC_MSVC) && defined(QT_QML_LIB)
     for (auto &w : windows) {
         auto hwnd = w->winId();
         const BOOL backdrop = acrylic ? 3 : 2;
@@ -269,7 +269,7 @@ inline void QStyleHelper::setMica(QList<QWindow *> &&windows, bool acrylic)
 #endif
 }
 
-#ifdef QT_WIDGETS_LIB
+#if defined(QT_WIDGETS_LIB)
 inline QStringList QStyleHelper::QStyleNames() { return QStyleFactory::keys(); }
 
 inline QStyleHelper &QStyleHelper::setWidgetStyle(const QString &styleName)
@@ -315,7 +315,7 @@ inline void QStyleHelper::timerEvent(QTimerEvent *)
     if(result == mIsDark){
         mIsDark = !result;
         emit colorSchemeChanged(mIsDark);
-#ifdef QT_WIDGETS_LIB
+#if defined(QT_WIDGETS_LIB)
         mAutoChangePalette ? mPaletteHelper.setPalette(mIsDark) : void();
 #endif
     }
@@ -337,7 +337,7 @@ inline bool QStyleHelper::isDark()
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-#ifdef QT_WIDGETS_LIB
+#if defined(QT_WIDGETS_LIB)
 inline void QStyleHelper::QPaletteHelper::setPalette(bool dark)
 {
     QPalette palette{dark ? mCustomDarkPalette : mCustomLightPalette};
