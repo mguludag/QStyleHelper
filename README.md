@@ -5,6 +5,9 @@ A Helper class for managing QStyle, QPalette, TitleBar Color on Windows and auto
 
 https://user-images.githubusercontent.com/12413639/216264921-933c2670-b1d5-4b67-8624-c5c8aaf39ecd.mp4
 
+https://user-images.githubusercontent.com/12413639/216384897-b8f63c3a-2658-4637-acaa-d85e74e75869.mp4
+
+
 
 
 ## Usage
