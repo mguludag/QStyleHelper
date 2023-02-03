@@ -54,9 +54,7 @@
 
 enum DwmWindowAttribute : uint
 {
-    UseHostBackdropBrush = 17,
-    UseDarkMode = 19,
-    UseImmersiveDarkMode,
+    UseImmersiveDarkMode = 20,
     WindowCornerPreference = 33,
     BorderColor,
     CaptionColor,
@@ -219,7 +217,7 @@ inline void QStyleHelper::setTitleBarDarkColor(std::initializer_list<std::refere
     for (auto &w : windows) {
         auto hwnd = w.get().winId();
         const BOOL darkBorder = static_cast<BOOL>(dark);
-        DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::UseDarkMode, &darkBorder, sizeof(darkBorder));
+        DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::UseImmersiveDarkMode, &darkBorder, sizeof(darkBorder));
     }
 #endif
 }
@@ -278,7 +276,7 @@ inline void QStyleHelper::setTitleBarDarkColor(QList<QWindow *> &&windows, bool 
     for (auto &w : windows) {
         auto hwnd = w->winId();
         const BOOL darkBorder = static_cast<BOOL>(dark);
-        DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::UseDarkMode, &darkBorder, sizeof(darkBorder));
+        DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::UseImmersiveDarkMode, &darkBorder, sizeof(darkBorder));
     }
 #endif
 }
