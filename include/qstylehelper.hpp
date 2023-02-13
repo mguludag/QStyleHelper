@@ -205,7 +205,7 @@ inline QStyleHelper::~QStyleHelper()
 
 inline void QStyleHelper::setTitleBarDarkColor()
 {
-#if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR > 14
+#if defined(Q_OS_WIN)
     qputenv("QT_QPA_PLATFORM", "windows:darkmode=1");
 #endif // Q_OS_WINDOWS
 }
@@ -213,7 +213,7 @@ inline void QStyleHelper::setTitleBarDarkColor()
 #if defined(QT_WIDGETS_LIB) && defined(Q_CC_MSVC)
 inline void QStyleHelper::setTitleBarDarkColor(std::initializer_list<std::reference_wrapper<QWidget>> &&windows, bool dark)
 {
-#if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
+#if defined(Q_OS_WIN)
     for (auto &w : windows) {
         auto hwnd = w.get().winId();
         const BOOL darkBorder = static_cast<BOOL>(dark);
@@ -272,7 +272,7 @@ inline void QStyleHelper::setMica(std::initializer_list<std::reference_wrapper<Q
 
 inline void QStyleHelper::setTitleBarDarkColor(QList<QWindow *> &&windows, bool dark)
 {
-#if defined(Q_OS_WIN) && QT_VERSION_MAJOR == 5 && QT_VERSION_MINOR <= 15
+#if defined(Q_OS_WIN)
     for (auto &w : windows) {
         auto hwnd = w->winId();
         const BOOL darkBorder = static_cast<BOOL>(dark);
