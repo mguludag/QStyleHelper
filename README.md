@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
 
     // this connection and QStyleHelper::colorSchemeChanged signal for monitor windows dark/light mode changes
     QObject::connect(&QStyleHelper::instance(), &QStyleHelper::colorSchemeChanged, [&w](bool dark) 
-                     { QStyleHelper::setTitleBarDarkColor({w}, dark); QStyleHelper::setMica({w}, dark); });
+                     { QStyleHelper::setMica({w}, dark); QStyleHelper::setTitleBarDarkColor({w}, dark); });
 
     w.show();
 
@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 
     // this connection and QStyleHelper::colorSchemeChanged signal for monitor windows dark/light mode changes
     QObject::connect(&QStyleHelper::instance(), &QStyleHelper::colorSchemeChanged, [](bool b)
-    { QStyleHelper::setTitleBarDarkColor(QGuiApplication::allWindows(), b); QStyleHelper::setMica(QGuiApplication::allWindows(), true); });
+    { QStyleHelper::setMica(QGuiApplication::allWindows(), true); QStyleHelper::setTitleBarDarkColor(QGuiApplication::allWindows(), b); });
 
     return app.exec();
 }
