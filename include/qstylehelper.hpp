@@ -103,9 +103,23 @@ typedef struct _ACCENT_POLICY
     DWORD AnimationId;
 } ACCENT_POLICY;
 
-typedef BOOL (WINAPI *pfnGetWindowCompositionAttribute)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
+// 1903 18362
+enum PreferredAppMode
+{
+    Default,
+    AllowDark,
+    ForceDark,
+    ForceLight,
+    Max
+};
 
-typedef BOOL (WINAPI *pfnSetWindowCompositionAttribute)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
+using pfnGetWindowCompositionAttribute =  BOOL (WINAPI *)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
+
+using pfnSetWindowCompositionAttribute = BOOL (WINAPI *)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
+
+using fnAllowDarkModeForApp = bool (WINAPI *)(bool allow); // ordinal 135, in 1809
+
+using fnSetPreferredAppMode = PreferredAppMode (WINAPI *)(PreferredAppMode appMode); // ordinal 135, in 1903
 
 #endif
 
@@ -218,6 +232,21 @@ inline void QStyleHelper::setTitleBarDarkColor(std::initializer_list<std::refere
         auto hwnd = w.get().winId();
         const BOOL darkBorder = static_cast<BOOL>(dark);
         DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::UseImmersiveDarkMode, &darkBorder, sizeof(darkBorder));
+        HMODULE hUxTheme = GetModuleHandle(L"uxtheme.dll");
+        if (hUxTheme){
+            auto fnPtr_135 = GetProcAddress(hUxTheme, MAKEINTRESOURCEA(135));
+            if (fnPtr_135){
+                const auto build = QOperatingSystemVersion::current().microVersion();
+                 if(build < 18362){
+                    auto fnDarkMode = reinterpret_cast<fnAllowDarkModeForApp>(fnPtr_135);
+                    fnDarkMode(dark);
+                }
+                else{
+                    auto fnDarkMode = reinterpret_cast<fnSetPreferredAppMode>(fnPtr_135);
+                    fnDarkMode(dark ? PreferredAppMode::ForceDark : PreferredAppMode::ForceLight);
+                }
+            }
+        }
     }
 #endif
 }
@@ -277,6 +306,21 @@ inline void QStyleHelper::setTitleBarDarkColor(QList<QWindow *> &&windows, bool 
         auto hwnd = w->winId();
         const BOOL darkBorder = static_cast<BOOL>(dark);
         DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::UseImmersiveDarkMode, &darkBorder, sizeof(darkBorder));
+        HMODULE hUxTheme = GetModuleHandle(L"uxtheme.dll");
+        if (hUxTheme){
+            auto fnPtr_135 = GetProcAddress(hUxTheme, MAKEINTRESOURCEA(135));
+            if (fnPtr_135){
+                const auto build = QOperatingSystemVersion::current().microVersion();
+                 if(build < 18362){
+                    auto fnDarkMode = reinterpret_cast<fnAllowDarkModeForApp>(fnPtr_135);
+                    fnDarkMode(dark);
+                }
+                else{
+                    auto fnDarkMode = reinterpret_cast<fnSetPreferredAppMode>(fnPtr_135);
+                    fnDarkMode(dark ? PreferredAppMode::ForceDark : PreferredAppMode::ForceLight);
+                }
+            }
+        }
     }
 #endif
 }
