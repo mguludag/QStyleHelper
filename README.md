@@ -17,7 +17,7 @@ https://user-images.githubusercontent.com/12413639/216384897-b8f63c3a-2658-4637-
 
 
 
-## Usage
+## Usage for Qt Widgets
 ### main.cpp
 ```C++
 #include "mainwindow.h"
@@ -33,6 +33,18 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     MainWindow w;
     
+    // if you want to use Mica or Acrylic Blur you have to set background transparent
+    w.setAttribute(Qt::WA_TranslucentBackground);
+    
+    // this is for Windows 11
+    // example use of Mica, second bool parameter is setting acrylic transparent for mica
+    QStyleHelper::setMica({w});
+    
+    // this is for Windows 10/11 but resize performance is slow (deprecated)
+    // example use of Acrylic Blur Window, second bool parameter is setting acrylic transparent for it
+    QStyleHelper::setAcrylicBlurWindow({w}, true);
+    
+    
     // if your Qt version older than 5.15 use it like this for win32 dark titlebar environment and also you have to call once for any subwindows 
     QStyleHelper::setTitleBarDarkColor({w});
     
@@ -41,10 +53,54 @@ int main(int argc, char *argv[])
     
 
     // this connection and QStyleHelper::colorSchemeChanged signal for monitor windows dark/light mode changes
-    QObject::connect(&QStyleHelper::instance(), &QStyleHelper::colorSchemeChanged, [&w](bool dark) { QStyleHelper::setTitleBarDarkColor({w}, dark); });
+    QObject::connect(&QStyleHelper::instance(), &QStyleHelper::colorSchemeChanged, [&w](bool dark) 
+                     { QStyleHelper::setTitleBarDarkColor({w}, dark); QStyleHelper::setMica({w}, dark); });
 
     w.show();
 
     return a.exec();
+}
+```
+
+## Usage for Qt Quick
+### main.cpp
+```C++
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
+#include "qstylehelper.hpp"
+
+int main(int argc, char *argv[])
+{
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+#endif
+    QGuiApplication app(argc, argv);
+
+    QQmlApplicationEngine engine;
+    const QUrl url(QStringLiteral("qrc:/main.qml"));
+    QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
+                     &app, [url](QObject *obj, const QUrl &objUrl) {
+        if (!obj && url == objUrl)
+            QCoreApplication::exit(-1);
+    }, Qt::QueuedConnection);
+    engine.load(url);
+
+    // if your Qt version older than 5.15 use it like this for win32 dark titlebar environment
+    QStyleHelper::setTitleBarDarkColor(QGuiApplication::allWindows());
+    
+    // this is for Windows 11
+    // example use of Mica, second bool parameter is setting acrylic transparent for mica
+    QStyleHelper::setMica(QGuiApplication::allWindows(), true);
+    
+    // this is for Windows 10/11 but resize performance is slow (deprecated)
+    // example use of Acrylic Blur Window, second bool parameter is setting acrylic transparent for it
+    QStyleHelper::setAcrylicBlurWindow(QGuiApplication::allWindows());
+
+    // this connection and QStyleHelper::colorSchemeChanged signal for monitor windows dark/light mode changes
+    QObject::connect(&QStyleHelper::instance(), &QStyleHelper::colorSchemeChanged, [](bool b)
+    { QStyleHelper::setTitleBarDarkColor(QGuiApplication::allWindows(), b); QStyleHelper::setMica(QGuiApplication::allWindows(), true); });
+
+    return app.exec();
+}
 }
 ```
