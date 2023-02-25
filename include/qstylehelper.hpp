@@ -9,10 +9,10 @@
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -65,6 +65,20 @@ enum DwmWindowAttribute : uint
     Last
 };
 
+// 1903 18362
+enum PreferredAppMode
+{
+    Default,
+    AllowDark,
+    ForceDark,
+    ForceLight,
+    Max
+};
+
+using fnAllowDarkModeForApp = bool (WINAPI *)(bool allow); // ordinal 135, in 1809
+
+using fnSetPreferredAppMode = PreferredAppMode (WINAPI *)(PreferredAppMode appMode); // ordinal 135, in 1903
+
 #endif
 
 #if defined(Q_OS_WIN) && defined(Q_CC_MSVC) && defined(QT_WIDGETS_LIB)
@@ -103,23 +117,9 @@ typedef struct _ACCENT_POLICY
     DWORD AnimationId;
 } ACCENT_POLICY;
 
-// 1903 18362
-enum PreferredAppMode
-{
-    Default,
-    AllowDark,
-    ForceDark,
-    ForceLight,
-    Max
-};
-
 using pfnGetWindowCompositionAttribute =  BOOL (WINAPI *)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
 
 using pfnSetWindowCompositionAttribute = BOOL (WINAPI *)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
-
-using fnAllowDarkModeForApp = bool (WINAPI *)(bool allow); // ordinal 135, in 1809
-
-using fnSetPreferredAppMode = PreferredAppMode (WINAPI *)(PreferredAppMode appMode); // ordinal 135, in 1903
 
 #endif
 
