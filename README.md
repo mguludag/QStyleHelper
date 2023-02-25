@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
 
     // this connection and QStyleHelper::colorSchemeChanged signal for monitor windows dark/light mode changes
     QObject::connect(&QStyleHelper::instance(), &QStyleHelper::colorSchemeChanged, [&w](bool dark) 
-                     { QStyleHelper::setMica({w}, dark); QStyleHelper::setTitleBarDarkColor({w}, dark); });
+                     { QStyleHelper::setMica({w}); QStyleHelper::setTitleBarDarkColor({w}, dark); });
 
     w.show();
 
