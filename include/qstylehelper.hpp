@@ -51,7 +51,6 @@
 
 #pragma comment(lib, "Dwmapi.lib")
 
-
 enum DwmWindowAttribute : uint
 {
     UseImmersiveDarkMode = 20,
@@ -81,7 +80,7 @@ using fnSetPreferredAppMode = PreferredAppMode (WINAPI *)(PreferredAppMode appMo
 
 #endif
 
-#if defined(Q_OS_WIN) && defined(Q_CC_MSVC) && defined(QT_WIDGETS_LIB)
+#if defined(Q_OS_WIN) && defined(Q_CC_MSVC)
 
 typedef enum _WINDOWCOMPOSITIONATTRIB
 {
@@ -162,6 +161,9 @@ protected:
 
 private:
     QStyleHelper();
+    static void __setAcyrlicBlur(WId hwnd, bool acrylic);
+    static void __setMica(WId hwnd, bool acrylic);
+    static void __setTitlebarDark(WId hwnd, bool dark);
 
 #ifdef QT_WIDGETS_LIB
     struct QPaletteHelper
@@ -198,7 +200,6 @@ private:
 };
 
 
-
 inline QStyleHelper::QStyleHelper() :
     mIsDark(false), mSettings("HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
                               QSettings::NativeFormat)
@@ -230,23 +231,7 @@ inline void QStyleHelper::setTitleBarDarkColor(std::initializer_list<std::refere
 #if defined(Q_OS_WIN)
     for (auto &w : windows) {
         auto hwnd = w.get().winId();
-        const BOOL darkBorder = static_cast<BOOL>(dark);
-        DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::UseImmersiveDarkMode, &darkBorder, sizeof(darkBorder));
-        HMODULE hUxTheme = GetModuleHandle(L"uxtheme.dll");
-        if (hUxTheme){
-            auto fnPtr_135 = GetProcAddress(hUxTheme, MAKEINTRESOURCEA(135));
-            if (fnPtr_135){
-                const auto build = QOperatingSystemVersion::current().microVersion();
-                 if(build < 18362){
-                    auto fnDarkMode = reinterpret_cast<fnAllowDarkModeForApp>(fnPtr_135);
-                    fnDarkMode(dark);
-                }
-                else{
-                    auto fnDarkMode = reinterpret_cast<fnSetPreferredAppMode>(fnPtr_135);
-                    fnDarkMode(dark ? PreferredAppMode::ForceDark : PreferredAppMode::ForceLight);
-                }
-            }
-        }
+        __setTitlebarDark(hwnd, dark);
     }
 #endif
 }
@@ -256,16 +241,7 @@ inline void QStyleHelper::setAcrylicBlurWindow(std::initializer_list<std::refere
 #if defined(Q_OS_WIN) && defined(Q_CC_MSVC) && defined(QT_WIDGETS_LIB)
     for (auto &w : windows) {
         auto hwnd = w.get().winId();
-
-        HMODULE hUser = GetModuleHandle(L"user32.dll");
-        if (hUser){
-            auto setWCA = (pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
-            if (setWCA){
-                ACCENT_POLICY accent = { acrylic ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_ENABLE_BLURBEHIND, 3, 0x0cccccc, 0 };
-                WINDOWCOMPOSITIONATTRIBDATA data{WCA_MICA, &accent, sizeof(accent)};
-                setWCA((HWND)hwnd, &data);
-            }
-        }
+        __setAcyrlicBlur(hwnd, acrylic);
     }
 #endif
 }
@@ -275,25 +251,7 @@ inline void QStyleHelper::setMica(std::initializer_list<std::reference_wrapper<Q
 #if defined(Q_OS_WIN) && defined(Q_CC_MSVC) && defined(QT_WIDGETS_LIB)
     for (auto &w : windows) {
         auto hwnd = w.get().winId();
-
-        HMODULE hUser = GetModuleHandle(L"user32.dll");
-        if (hUser){
-            auto setWCA = (pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
-            if (setWCA){
-                ACCENT_POLICY accent = {ACCENT_ENABLE_HOSTBACKDROP,
-                                         static_cast<DWORD>((acrylic ? 3 : 2)), 0x0cccccc, 0 };
-                WINDOWCOMPOSITIONATTRIBDATA data{WCA_ACCENT_POLICY, &accent, sizeof(accent)};
-                setWCA((HWND)hwnd, &data);
-                const MARGINS margins{-1, -1, -1, -1};
-                DwmExtendFrameIntoClientArea((HWND)hwnd, &margins);
-                setWCA((HWND)hwnd, &data);
-                const auto build = QOperatingSystemVersion::current().microVersion();
-                const BOOL backdrop = acrylic ? (build < 22523 ? 2 : 3) : (build < 22523 ? 1 : 2);
-                DwmSetWindowAttribute((HWND)hwnd, build < 22523 ?
-                                          DwmWindowAttribute::UndocumentedSystemBackdropType : DwmWindowAttribute::SystemBackdropType,
-                                      &backdrop, sizeof(backdrop));
-            }
-        }
+        __setMica(hwnd, acrylic);
     }
 #endif
 }
@@ -304,42 +262,17 @@ inline void QStyleHelper::setTitleBarDarkColor(QList<QWindow *> &&windows, bool 
 #if defined(Q_OS_WIN)
     for (auto &w : windows) {
         auto hwnd = w->winId();
-        const BOOL darkBorder = static_cast<BOOL>(dark);
-        DwmSetWindowAttribute((HWND)hwnd, DwmWindowAttribute::UseImmersiveDarkMode, &darkBorder, sizeof(darkBorder));
-        HMODULE hUxTheme = GetModuleHandle(L"uxtheme.dll");
-        if (hUxTheme){
-            auto fnPtr_135 = GetProcAddress(hUxTheme, MAKEINTRESOURCEA(135));
-            if (fnPtr_135){
-                const auto build = QOperatingSystemVersion::current().microVersion();
-                 if(build < 18362){
-                    auto fnDarkMode = reinterpret_cast<fnAllowDarkModeForApp>(fnPtr_135);
-                    fnDarkMode(dark);
-                }
-                else{
-                    auto fnDarkMode = reinterpret_cast<fnSetPreferredAppMode>(fnPtr_135);
-                    fnDarkMode(dark ? PreferredAppMode::ForceDark : PreferredAppMode::ForceLight);
-                }
-            }
-        }
+        __setTitlebarDark(hwnd, dark);
     }
 #endif
 }
 
 inline void QStyleHelper::setAcrylicBlurWindow(QList<QWindow *> &&windows, bool acrylic)
 {
-#if defined(Q_OS_WIN) && defined(Q_CC_MSVC) && defined(QT_WIDGETS_LIB)
+#if defined(Q_OS_WIN) && defined(Q_CC_MSVC)
     for (auto &w : windows) {
         auto hwnd = w->winId();
-
-        HMODULE hUser = GetModuleHandle(L"user32.dll");
-        if (hUser){
-            auto setWCA = (pfnSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
-            if (setWCA){
-                ACCENT_POLICY accent = { acrylic ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_ENABLE_BLURBEHIND, 0, 0, 0 };
-                WINDOWCOMPOSITIONATTRIBDATA data{WCA_ACCENT_POLICY, &accent, sizeof(accent)};
-                setWCA((HWND)hwnd, &data);
-            }
-        }
+        __setAcyrlicBlur(hwnd, acrylic);
     }
 #endif
 }
@@ -349,13 +282,67 @@ inline void QStyleHelper::setMica(QList<QWindow *> &&windows, bool acrylic)
 #if defined(Q_OS_WIN) && defined(Q_CC_MSVC) && defined(QT_QML_LIB)
     for (auto &w : windows) {
         auto hwnd = w->winId();
-        const auto build = QOperatingSystemVersion::current().microVersion();
-        const BOOL backdrop = acrylic ? (build < 22523 ? 2 : 3) : (build < 22523 ? 1 : 2);
-        DwmSetWindowAttribute((HWND)hwnd, build < 22523 ?
-                                  DwmWindowAttribute::UndocumentedSystemBackdropType : DwmWindowAttribute::SystemBackdropType,
-                              &backdrop, sizeof(backdrop));
+        __setMica(hwnd, acrylic);
     }
 #endif
+}
+
+inline void QStyleHelper::__setAcyrlicBlur(WId hwnd, bool acrylic)
+{
+    static HMODULE hUser = GetModuleHandle(L"user32.dll");
+    if (hUser){
+        static auto setWCA = reinterpret_cast<pfnSetWindowCompositionAttribute>(GetProcAddress(hUser, "SetWindowCompositionAttribute"));
+        if (setWCA){
+            ACCENT_POLICY accent = { acrylic ? ACCENT_ENABLE_ACRYLICBLURBEHIND : ACCENT_ENABLE_BLURBEHIND, 0, 0, 0 };
+            WINDOWCOMPOSITIONATTRIBDATA data{WCA_ACCENT_POLICY, &accent, sizeof(accent)};
+            setWCA(reinterpret_cast<HWND>(hwnd), &data);
+        }
+    }
+}
+
+inline void QStyleHelper::__setMica(WId hwnd, bool acrylic)
+{
+#if defined(QT_WIDGETS_LIB) && !defined(QT_QML_LIB)
+    static HMODULE hUser = GetModuleHandle(L"user32.dll");
+    if (hUser){
+        static auto setWCA = reinterpret_cast<pfnSetWindowCompositionAttribute>(GetProcAddress(hUser, "SetWindowCompositionAttribute"));
+        if (setWCA){
+            ACCENT_POLICY accent = {ACCENT_ENABLE_HOSTBACKDROP,
+                                     static_cast<DWORD>((acrylic ? 3 : 2)), 0x0cccccc, 0 };
+            WINDOWCOMPOSITIONATTRIBDATA data{WCA_ACCENT_POLICY, &accent, sizeof(accent)};
+            setWCA(reinterpret_cast<HWND>(hwnd), &data);
+            const MARGINS margins{-1, -1, -1, -1};
+            DwmExtendFrameIntoClientArea((HWND)hwnd, &margins);
+            setWCA(reinterpret_cast<HWND>(hwnd), &data);
+        }
+    }
+#endif
+    const auto build = QOperatingSystemVersion::current().microVersion();
+    const BOOL backdrop = acrylic ? (build < 22523 ? 2 : 3) : (build < 22523 ? 1 : 2);
+    DwmSetWindowAttribute(reinterpret_cast<HWND>(hwnd), build < 22523 ?
+                              DwmWindowAttribute::UndocumentedSystemBackdropType : DwmWindowAttribute::SystemBackdropType,
+                          &backdrop, sizeof(backdrop));
+}
+
+inline void QStyleHelper::__setTitlebarDark(WId hwnd, bool dark)
+{
+    const BOOL darkBorder = static_cast<BOOL>(dark);
+    DwmSetWindowAttribute(reinterpret_cast<HWND>(hwnd), DwmWindowAttribute::UseImmersiveDarkMode, &darkBorder, sizeof(darkBorder));
+    static HMODULE hUxTheme = GetModuleHandle(L"uxtheme.dll");
+    if (hUxTheme){
+        static auto fnPtr_135 = GetProcAddress(hUxTheme, MAKEINTRESOURCEA(135));
+        if (fnPtr_135){
+            const auto build = QOperatingSystemVersion::current().microVersion();
+             if(build < 18362){
+                auto fnDarkMode = reinterpret_cast<fnAllowDarkModeForApp>(fnPtr_135);
+                fnDarkMode(dark);
+            }
+            else{
+                auto fnDarkMode = reinterpret_cast<fnSetPreferredAppMode>(fnPtr_135);
+                fnDarkMode(dark ? PreferredAppMode::ForceDark : PreferredAppMode::ForceLight);
+            }
+        }
+    }
 }
 
 #if defined(QT_WIDGETS_LIB)
@@ -489,6 +476,5 @@ inline void QStyleHelper::QPaletteHelper::setCustomDarkPalette(const QPalette &n
 }
 
 #endif //QT_WIDGETS_LIB
-
 
 #endif // QSTYLEHELPER_HPP
