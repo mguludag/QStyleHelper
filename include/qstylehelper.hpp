@@ -289,6 +289,7 @@ inline void QStyleHelper::setMica(QList<QWindow *> &&windows, bool acrylic)
 
 inline void QStyleHelper::__setAcyrlicBlur(WId hwnd, bool acrylic)
 {
+#if defined(Q_OS_WIN) && defined(Q_CC_MSVC)
     static HMODULE hUser = GetModuleHandle(L"user32.dll");
     if (hUser){
         static auto setWCA = reinterpret_cast<pfnSetWindowCompositionAttribute>(GetProcAddress(hUser, "SetWindowCompositionAttribute"));
@@ -298,10 +299,12 @@ inline void QStyleHelper::__setAcyrlicBlur(WId hwnd, bool acrylic)
             setWCA(reinterpret_cast<HWND>(hwnd), &data);
         }
     }
+#endif
 }
 
 inline void QStyleHelper::__setMica(WId hwnd, bool acrylic)
 {
+#if defined(Q_OS_WIN) && defined(Q_CC_MSVC)
 #if defined(QT_WIDGETS_LIB) && !defined(QT_QML_LIB)
     static HMODULE hUser = GetModuleHandle(L"user32.dll");
     if (hUser){
@@ -322,10 +325,12 @@ inline void QStyleHelper::__setMica(WId hwnd, bool acrylic)
     DwmSetWindowAttribute(reinterpret_cast<HWND>(hwnd), build < 22523 ?
                               DwmWindowAttribute::UndocumentedSystemBackdropType : DwmWindowAttribute::SystemBackdropType,
                           &backdrop, sizeof(backdrop));
+#endif
 }
 
 inline void QStyleHelper::__setTitlebarDark(WId hwnd, bool dark)
 {
+#if defined(Q_OS_WIN) && defined(Q_CC_MSVC)
     const BOOL darkBorder = static_cast<BOOL>(dark);
     DwmSetWindowAttribute(reinterpret_cast<HWND>(hwnd), DwmWindowAttribute::UseImmersiveDarkMode, &darkBorder, sizeof(darkBorder));
     static HMODULE hUxTheme = GetModuleHandle(L"uxtheme.dll");
@@ -343,6 +348,7 @@ inline void QStyleHelper::__setTitlebarDark(WId hwnd, bool dark)
             }
         }
     }
+#endif
 }
 
 #if defined(QT_WIDGETS_LIB)
